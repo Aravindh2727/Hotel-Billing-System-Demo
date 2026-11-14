@@ -1,0 +1,109 @@
+import { useEffect, useMemo, useState } from 'react';
+import ExpenseForm from './ExpenseForm';
+import SummaryCards from './SummaryCards';
+import CSVExportButtons from './CSVExportButtons';
+import { todayKey, formatDisplayDate } from '../utils/dateTimeUtils';
+import { listenBillsByDate, listenExpensesByDate, deleteExpense } from '../services/firestoreService';
+import toast from 'react-hot-toast';
+import { useAuth } from '../App';
+
+const formatInr = (n = 0) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
+
+export default function ProfitSection() {
+  const { user, isDemo } = useAuth();
+  const today = todayKey();
+  const todayDisplay = formatDisplayDate(today);
+  const [bills, setBills] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [editing, setEditing] = useState(null);
+
+  const canDeleteExpense = !isDemo || user?.permissions?.includes('delete_expense') || user?.role === 'owner';
+
+  useEffect(() => {
+    const unsubBills = listenBillsByDate(today, snap => setBills(snap.docs.map(d=>({ id:d.id, ...d.data() }))));
+    const unsubExp = listenExpensesByDate(today, snap => setExpenses(snap.docs.map(d=>({ id:d.id, ...d.data() }))));
+    return () => { unsubBills(); unsubExp(); };
+  }, [today]);
+
+  const summary = useMemo(() => {
+    const base = {
+      morning: { cash:0, upi:0, total:0 },
+      afternoon:{ cash:0, upi:0, total:0 },
+      evening:{ cash:0, upi:0, total:0 },
+      expense: 0
+    };
+    bills.forEach(b => {
+      const bucket = base[b.sessionType] || base.morning;
+      if (b.paymentMode === 'cash') bucket.cash += b.billTotal || 0;
+      if (b.paymentMode === 'upi') bucket.upi += b.billTotal || 0;
+      bucket.total += b.billTotal || 0;
+    });
+    base.expense = expenses.reduce((s,e)=> s + (e.amount||0), 0);
+    return base;
+  }, [bills, expenses]);
+
+  const grandTotal = summary.morning.total + summary.afternoon.total + summary.evening.total;
+  const net = grandTotal - summary.expense;
+
+  const handleDelete = async (id) => {
+    if (!canDeleteExpense) {
+      return toast.error('Cashier role cannot delete expenses. Switch to Owner role to test this action.');
+    }
+    await deleteExpense(id);
+    toast.success('Expense deleted');
+    if (editing?.id === id) setEditing(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <SummaryCards totals={{ grandTotal, net, expense: summary.expense }} />
+
+      <div className="card">
+        <div className="text-lg font-semibold mb-3">Today Breakdown ({todayDisplay})</div>
+        <div className="overflow-x-auto">
+          <table className="table min-w-[480px]">
+          <thead><tr><th>Session</th><th>Cash</th><th>UPI</th><th>Total</th></tr></thead>
+          <tbody>
+            {['morning','afternoon','evening'].map(s=>(
+              <tr key={s}>
+                <td className="capitalize">{s}</td>
+                <td>{formatInr(summary[s].cash)}</td>
+                <td>{formatInr(summary[s].upi)}</td>
+                <td>{formatInr(summary[s].total)}</td>
+              </tr>
+            ))}
+          </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="text-lg font-semibold mb-3">Today Expenses</div>
+        <div className="overflow-x-auto">
+          <table className="table min-w-[540px]">
+          <thead><tr><th>Title</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+          <tbody>
+            {expenses.length === 0 && <tr><td colSpan="4" className="text-center text-slate-500">No expenses</td></tr>}
+            {expenses.map((e)=>(
+              <tr key={e.id}>
+                <td>{e.expenseTitle}</td>
+                <td>{formatInr(e.amount||0)}</td>
+                <td>{e.note || ''}</td>
+                <td>
+                  <div className="flex flex-wrap gap-2">
+                    <button className="btn btn-ghost w-full sm:w-auto" onClick={()=>setEditing(e)}>Edit</button>
+                    <button className="btn btn-ghost w-full sm:w-auto text-rose-600 hover:text-rose-700" onClick={()=>handleDelete(e.id)}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          </table>
+        </div>
+      </div>
+
+      <ExpenseForm editing={editing} onSaved={()=>setEditing(null)} />
+      <CSVExportButtons bills={bills} expenses={expenses} today={today} />
+    </div>
+  );
+}
