@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { listenAuth, signInDemoRole } from './services/authService';
-import { resetDemoData } from './services/firestoreService';
-import { isDemoMode, getAppMode, setAppMode } from './config/env';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './routes/ProtectedRoute';
-import DemoBanner from './components/DemoBanner';
+import { listenAuth, signInDemoRole } from './services/authService.js';
+import { resetDemoData } from './services/firestoreService.js';
+import { isDemoMode, getAppMode, setAppMode } from './config/env.js';
+import LoginPage from './pages/LoginPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
+import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import DemoBanner from './components/DemoBanner.jsx';
 
 const AuthContext = createContext({
   user: null,
@@ -25,10 +25,22 @@ function AppRoutes({ user, checking }) {
   // Handle redirect from 404.html (for GitHub Pages & SPA routers)
   useEffect(() => {
     const redirect = sessionStorage.redirect;
-    delete sessionStorage.redirect;
-    const baseClean = import.meta.env.BASE_URL.replace(/\/$/, '') + '/';
-    if (redirect && window.location.pathname === baseClean) {
-      navigate(redirect.replace(/^.*?\/dashboard\//, ''));
+    if (redirect) {
+      delete sessionStorage.redirect;
+      try {
+        const url = new URL(redirect, window.location.origin);
+        const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+        let targetPath = url.pathname;
+        if (base && targetPath.startsWith(base)) {
+          targetPath = targetPath.slice(base.length);
+        }
+        if (!targetPath || targetPath === '') {
+          targetPath = '/';
+        }
+        navigate(targetPath + url.search + url.hash, { replace: true });
+      } catch (e) {
+        console.warn('Redirect handling error:', e);
+      }
     }
   }, [navigate]);
 
@@ -43,13 +55,14 @@ function AppRoutes({ user, checking }) {
 
   return (
     <Routes>
-      <Route path="login" element={<LoginPage />} />
-      <Route path="dashboard/*" element={
+      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/dashboard/*" element={
         <ProtectedRoute>
           <DashboardPage />
         </ProtectedRoute>
       }/>
-      <Route path="*" element={<Navigate to={user ? "dashboard" : "login"} replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
@@ -58,7 +71,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
   const [appMode, setMode] = useState(getAppMode());
-  const futureFlags = { v7_startTransition: true, v7_relativeSplatPath: true };
 
   useEffect(() => {
     const unsub = listenAuth(u => {
@@ -93,7 +105,7 @@ export default function App() {
       resetDemo,
       toggleMode
     }}>
-      <BrowserRouter basename={basename} future={futureFlags}>
+      <BrowserRouter basename={basename}>
         {isDemo && <DemoBanner />}
         <AppRoutes user={user} checking={checking} />
       </BrowserRouter>
