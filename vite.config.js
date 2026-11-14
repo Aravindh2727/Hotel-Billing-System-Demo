@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const base = env.VITE_BASE_URL || '/billing-system1/';
-  const outDir = env.BUILD_OUTDIR || (mode === 'demo' ? 'dist-demo' : 'docs');
+  const base = env.VITE_BASE_URL || '/Hotel-Billing-System-Demo/';
+  const outDir = env.BUILD_OUTDIR || (mode === 'demo' ? 'docs' : 'docs');
 
   return {
     base,

@@ -9,7 +9,7 @@
 
 | Environment | Purpose | Access Link | Authentication |
 | :--- | :--- | :--- | :--- |
-| **🚀 Public Interactive Demo** | Public recruiter evaluation, portfolio showcase, feature testing | [Launch Public Demo](https://aravindh-v-dev.github.io/billing-system1/?mode=demo) *(or deployed demo URL)* | **1-Click Instant Access** (Owner, Cashier, Auditor) |
+| **🚀 Public Interactive Demo** | Public recruiter evaluation, portfolio showcase, feature testing | [Launch Public Demo](https://aravindh2727.github.io/Hotel-Billing-System-Demo/) | **1-Click Instant Access** (Owner, Cashier, Auditor) |
 | **🔒 Production Application** | Active daily mess operations, real customers, real financial ledgers | Live Production URL | Restricted to Verified Owner (`sriraghavendramess28@gmail.com`) |
 
 ---
@@ -100,7 +100,7 @@ The demo environment was designed according to strict enterprise isolation and z
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/aravindh-v-dev/billing-system1.git
+git clone https://github.com/Aravindh2727/Hotel-Billing-System-Demo.git
 cd billing-system1
 
 # Install dependencies

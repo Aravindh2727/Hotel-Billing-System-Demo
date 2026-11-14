@@ -6,8 +6,10 @@
     <script>
       // Store the path that caused the 404
       sessionStorage.redirect = window.location.pathname + window.location.search;
-      // Adaptively redirect to the proper base path (GitHub Pages or Custom Domain / Vercel / Netlify)
-      var base = window.location.pathname.startsWith('/billing-system1') ? '/billing-system1/' : '/';
+      // Adaptively redirect to the proper base path (GitHub Pages repo or Custom Domain / Vercel / Netlify)
+      var base = window.location.pathname.startsWith('/Hotel-Billing-System-Demo')
+        ? '/Hotel-Billing-System-Demo/'
+        : (window.location.pathname.startsWith('/billing-system1') ? '/billing-system1/' : '/');
       window.location.replace(base);
     </script>
   </head>
